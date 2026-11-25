@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulation: Verbrauchsfunktion und Optimalintensität</title>
+<style>
+  :root{
+    --navy:#1A3A5C; --blue:#2E6DA4; --teal:#1A6B72; --gold:#B8860B;
+    --ink:#1f2933; --muted:#5b6876; --line:#d9e1ea; --bg:#f5f7fa; --card:#ffffff;
+    --soft:#eef3f9; --goldsoft:#fcf3dc; --good:#2f7d4f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Calibri,"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Carlito,Arial,sans-serif;color:var(--ink);background:var(--bg);font-size:16px;line-height:1.45}
+  header{background:var(--navy);color:#fff;padding:18px 24px}
+  header h1{margin:0;font-size:24px;font-weight:600}
+  header p{margin:4px 0 0;opacity:.85;font-size:15px}
+  main{max-width:1120px;margin:0 auto;padding:18px 16px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+  h2{font-size:19px;color:var(--navy);margin:0 0 10px;display:flex;align-items:center;gap:10px}
+  .step{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--navy);color:#fff;font-size:15px;flex:none}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .presets button,.lam button,.small{font:inherit;border:1px solid var(--blue);background:#fff;color:var(--blue);border-radius:6px;padding:6px 12px;cursor:pointer}
+  .presets button.on,.lam button.on{background:var(--blue);color:#fff}
+  .small{padding:3px 10px;font-size:14px}
+  table{border-collapse:collapse;width:100%;font-size:15px}
+  th,td{border:1px solid var(--line);padding:6px 8px;text-align:right;white-space:nowrap}
+  th:first-child,td:first-child{text-align:left;white-space:normal}
+  thead th{background:var(--soft);color:var(--navy)}
+  tr.dim td{background:#fafbfd;color:var(--muted);font-style:italic}
+  td.sel,th.sel{background:#e3eefa !important}
+  td.opt{background:var(--goldsoft) !important;font-weight:700;color:#7a5600}
+  tr.sum td{font-weight:700;border-top:2px solid var(--navy)}
+  input[type=number]{width:78px;font:inherit;text-align:right;padding:3px 5px;border:1px solid #b9c6d4;border-radius:4px}
+  .params{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+  .param{background:var(--soft);border-radius:8px;padding:10px 12px}
+  .param label{display:block;font-weight:600;color:var(--navy);margin-bottom:4px}
+  .param .val{display:flex;align-items:center;gap:8px}
+  .param input[type=range]{flex:1}
+  .rw{font-family:Consolas,Menlo,Monaco,"Courier New",monospace;font-size:14.5px;background:#fafbfd;border-left:4px solid var(--blue);padding:8px 12px;margin:8px 0;white-space:pre-wrap}
+  .rw b{color:var(--navy)}
+  .hint{font-size:14px;color:var(--muted)}
+  .result{background:var(--goldsoft);border:1px solid #e6cf8f;border-radius:8px;padding:12px 14px;margin-top:10px}
+  .result strong{color:#7a5600}
+  .legend{display:flex;flex-wrap:wrap;gap:12px 22px;font-size:16px;margin:6px 0 2px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .legend i{display:inline-block;width:22px;height:4px;border-radius:2px}
+  .grid2{display:grid;grid-template-columns:1fr;gap:16px}
+  @media(min-width:980px){.grid2{grid-template-columns:1.05fr .95fr}}
+  .tablewrap{overflow-x:auto}
+  svg text{font-family:Calibri,"Segoe UI",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif}
+  .merke{border-left:5px solid var(--gold);background:#fffaf0;padding:10px 14px;border-radius:6px}
+  [hidden]{display:none !important}
+  .panel{background:var(--soft);border-radius:8px;padding:12px 14px;margin-top:10px}
+  .panel textarea{width:100%;font:inherit;padding:6px 8px;border:1px solid #b9c6d4;border-radius:4px;margin:4px 0 8px}
+  .panel textarea.code{font-family:Consolas,Menlo,Monaco,"Courier New",monospace;font-size:13px;word-break:break-all}
+  .panel b.t{display:block;color:var(--navy);margin-bottom:2px}
+  .task{background:var(--goldsoft);border:1px solid #e6cf8f;border-radius:8px;padding:12px 14px}
+  .task .tt{font-size:18px;font-weight:700;color:var(--navy)}
+  .task .tx{white-space:pre-wrap;margin:8px 0}
+  input[type=text].txt,select.sel2{font:inherit;padding:3px 5px;border:1px solid #b9c6d4;border-radius:4px;background:#fff}
+  input.fname{width:150px} input.funit{width:62px}
+  #inTable td.left{text-align:left;white-space:nowrap}
+  .del{font:inherit;border:1px solid #b3261e;color:#b3261e;background:#fff;border-radius:6px;padding:2px 9px;cursor:pointer}
+  .del:disabled,.small:disabled{opacity:.4;cursor:default}
+  .ans{width:66px;font:inherit;text-align:right;padding:3px 5px;border:1px solid #b9c6d4;border-radius:4px}
+  .ans.ok{border-color:#2f7d4f;background:#e6f4ea}
+  .ans.bad{border-color:#b3261e;background:#fdeceb}
+  .chk{margin:10px 0 0;padding:6px 10px;background:var(--soft);border-radius:6px;font-size:14.5px}
+  .eo{margin-top:8px;padding:10px 14px;border-radius:8px;border:1px solid #e6cf8f;background:#fffaf0;font-size:14.5px}
+  .eo.ok{border-color:#2f7d4f;background:#e6f4ea}
+  .eo ul{margin:6px 0 0 18px;padding:0}
+  .eo li{margin:4px 0}
+  .fb{margin-top:10px;padding:8px 12px;border-radius:6px;background:var(--soft)}
+  .fb.good{background:#e6f4ea;color:#1e5c38;font-weight:600}
+  .fb.warn{background:#fdeceb;color:#8a1c16}
+  #practiceBox p{margin:0 0 8px}
+
+  /* Arbeitsblatt-Design */
+  :root{--bg:#fff;--card:#fff;--line:#b8c0cc;--soft:#f3f5f8;--goldsoft:#FFF8E1;--ink:#222;--muted:#666}
+  html{color-scheme:light}
+  body{font-size:15px;background:#fff}
+  header{background:#fff;color:var(--navy);padding:14px 28px 10px;border-bottom:3px solid var(--navy)}
+  header .kopf{font-size:12.5px;color:var(--muted);letter-spacing:.2px}
+  header h1{margin:2px 0 0;font-size:24px;font-weight:700;color:var(--navy)}
+  header p{margin:2px 0 0;opacity:1;color:var(--muted);font-size:13px}
+  .card{border-radius:2px;border-top:3px solid var(--navy);box-shadow:none}
+  h2{color:var(--blue);border-bottom:2px solid var(--blue);padding-bottom:3px;font-size:19px}
+  .step{border-radius:2px;background:var(--navy)}
+  .presets button,.lam button,.small,button{border-radius:2px;border-color:var(--navy);color:var(--navy)}
+  .presets button.on,.lam button.on{background:var(--navy);color:#fff}
+  .small:hover:not(:disabled){background:var(--navy);color:#fff}
+  thead th{background:var(--navy);color:#fff}
+  tr.dim td{background:#eef2f7}
+  td.sel,th.sel{background:#dfe9f5 !important}
+  th.sel{background:#2c557f !important;color:#fff}
+  .param,.panel,.task,.chk,.eo,.fb,.rw,.result,.merke{border-radius:2px}
+  .result,.merke{border:1px solid var(--gold);background:var(--goldsoft)}
+  .merke{border-left:1px solid var(--gold)}
+  input[type=number],input[type=text].txt,select.sel2,.ans{border-radius:2px}
+  .del{border-radius:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="kopf">FOS Wirtschaft · BWL | Lerngebiet 5 · Produktion und Kosten</div>
+  <h1>Simulation: Verbrauchsfunktion und Optimalintensität</h1>
+  <p id="sub"></p>
+</header>
+<main>
+
+<section class="card">
+  <div id="teacherBox">
+  <h2>Beispiel wählen</h2>
+  <div class="row presets" id="presets"></div>
+  <p class="hint" id="presetText"></p>
+  <div class="row lam" id="modes"></div>
+  <p class="hint" id="modeText"></p>
+  </div>
+  <div id="taskBox" hidden></div>
+</section>
+
+<section class="card">
+  <h2><span class="step">0</span> <span id="h0">Ausgangsdaten (veränderbar)</span></h2>
+  <div class="row" style="margin-bottom:12px">
+    <label>Unternehmen <input type="text" class="txt" id="firma" maxlength="40" style="width:230px"></label>
+    <label>Produkt <input type="text" class="txt" id="produkt" maxlength="40" style="width:200px"></label>
+  </div>
+  <div class="tablewrap"><table id="inTable"></table></div>
+  <div class="row" style="margin-top:8px" id="editRow">
+    <button class="small" id="addFac">+ Einsatzfaktor</button>
+    <button class="small" id="addCol">+ Intensitätsstufe</button>
+    <button class="small" id="delCol">− Intensitätsstufe</button>
+    <span class="hint" id="facHint"></span>
+  </div>
+  <p class="chk" id="chk"></p>
+  <div class="row" id="eingRow" style="margin:8px 0 0">
+    <label>Meine Aufgabe <select id="aufSel" class="sel2"><option value="">– wählen –</option><option value="1">Aufgabe 1</option><option value="2">Aufgabe 2</option><option value="3">Aufgabe 3</option><option value="4">Aufgabe 4</option><option value="5">Aufgabe 5</option><option value="6">Aufgabe 6</option></select></label>
+    <button class="small" id="btnEing">Eingaben prüfen</button>
+    <span class="hint">Stimmt die Prüfsumme nicht? Dann zeigt Ihnen die Prüfung, wo etwas nicht stimmt (ohne Lösung zu verraten).</span>
+  </div>
+  <div id="eingOut"></div>
+  <p class="hint" style="margin:10px 0 0"><b>Art der Angabe:</b> „je Stück, immer gleich“ = Verbrauch hängt nicht von der Intensität ab · „je Stück, je Intensität“ = Verbrauch je Stück ist für jede Intensität gegeben · „je Stunde, je Intensität“ = Verbrauch je Betriebsstunde ist gegeben und wird durch λ geteilt · „Arbeit (Mitarbeiter)“ = Mitarbeiter · 60 min/Std., geteilt durch λ. Die Anzahl gilt für alle Mitarbeiter zusammen; der Preis ist der Lohn für <b>einen</b> Mitarbeiter (€/Std.).</p>
+  <div class="params" style="margin-top:14px" id="params"></div>
+</section>
+
+<section class="card">
+  <h2>Intensität auswählen</h2>
+  <div class="row lam" id="lamBtns"></div>
+  <p class="hint">Die gewählte Intensität wird in allen Tabellen markiert, darunter steht jeweils der Rechenweg.</p>
+</section>
+
+<div class="grid2">
+<div>
+<section class="card">
+  <h2><span class="step">1</span> Mengenmäßige Verbrauchsfunktionen</h2>
+  <div class="tablewrap"><table id="t1"></table></div>
+  <div class="rw" id="rw1"></div>
+</section>
+
+<section class="card">
+  <h2><span class="step">2</span> Monetäre Verbrauchsfunktionen</h2>
+  <div class="tablewrap"><table id="t2"></table></div>
+  <div class="rw" id="rw2"></div>
+</section>
+</div>
+
+<div>
+<section class="card">
+  <h2><span class="step">3</span> Aggregierte monetäre Verbrauchsfunktion</h2>
+  <div id="practiceBox"></div>
+  <div id="solBox">
+  <div class="legend" id="legend"></div>
+  <svg id="chart" viewBox="0 0 520 360" width="100%" role="img" aria-label="Diagramm der monetären und der aggregierten monetären Verbrauchsfunktion"></svg>
+  <div class="rw" id="rw3"></div>
+  <div class="result" id="result"></div>
+  </div>
+</section>
+
+<section class="card merke">
+  <strong>Merke:</strong> Die <b>Optimalintensität</b> ist die Intensität, bei der die aggregierte monetäre Verbrauchsfunktion ihr <b>Minimum</b> hat. Dort sind die variablen Kosten je Stück am niedrigsten.
+  <p class="hint" style="margin:8px 0 0">Ausprobieren: Preise verändern und beobachten, ob sich das Minimum verschiebt. Wird ein Faktor teurer, dessen Verbrauch je Stück mit der Intensität <b>fällt</b> (z. B. Arbeit), lohnt eher eine <b>höhere</b> Intensität. Wird ein Faktor teurer, dessen Verbrauch je Stück <b>steigt</b>, lohnt eher eine <b>niedrigere</b>.</p>
+</section>
+</div>
+</div>
+
+<section class="card" id="orderCard">
+  <h2><span class="step">4</span> Auftrag planen</h2>
+  <div class="row"><label>Auftragsmenge [Stk.] <input type="number" id="menge" min="1" step="1" value="480"></label>
+  <span class="hint">Gerechnet wird mit der oben gewählten Intensität.</span></div>
+  <div class="rw" id="rw4"></div>
+  <div class="result" id="order"></div>
+</section>
+
+<p class="hint">Rundung: Zwischenergebnisse werden kaufmännisch auf 2 Nachkommastellen gerundet und gerundet weiterverwendet (wie im Prüfungsschema). Eingaben sind mit höchstens 2 Nachkommastellen möglich; Intensität, Mitarbeiter, Auftragsmenge und λ<sub>opt</sub> sind ganze Zahlen.</p>
+</main>
+
+<script>
+const MAXF = 5;
+const COLORS = ["#E3161B","#1F5FD6","#12A04A","#FF8A00","#8E24AA"];
+const SUMCOL = "#000000";
+function mark(i,x,y,r,col){
+  switch(i%5){
+    case 0: return `<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/>`;
+    case 1: return `<rect x="${x-r}" y="${y-r}" width="${2*r}" height="${2*r}" fill="${col}"/>`;
+    case 2: return `<polygon points="${x},${y-r*1.3} ${x+r*1.2},${y+r} ${x-r*1.2},${y+r}" fill="${col}"/>`;
+    case 3: return `<polygon points="${x},${y-r*1.35} ${x+r*1.35},${y} ${x},${y+r*1.35} ${x-r*1.35},${y}" fill="${col}"/>`;
+    default: return `<path d="M${x-r} ${y-r}L${x+r} ${y+r}M${x+r} ${y-r}L${x-r} ${y+r}" stroke="${col}" stroke-width="3.5" fill="none"/>`;
+  }
+}
+const TYPES = [["konstant","je Stück, immer gleich"],["stueck","je Stück, je Intensität"],["stunde","je Stunde, je Intensität"],["arbeit","Arbeit (Mitarbeiter)"]];
+const PRESETS = {
+  A: {
+    name: "Beispiel A: Antriebswellen", firma: "Drehwerk Saar GmbH", produkt: "Antriebswellen",
+    text: "Werte aus der Aufgabe: Stahlverbrauch konstant, Strom aus Tabelle (kWh/Std.), 2 Mitarbeiter an der Anlage.",
+    lam: [20,30,40,50],
+    fac: [
+      {name:"Stahl", unit:"kg", type:"konstant", c:1.80, price:1.10},
+      {name:"Strom", unit:"kWh", type:"stunde", vals:[40,45,64,85], price:0.30},
+      {name:"Arbeit", unit:"min", type:"arbeit", ma:2, price:30.00}
+    ]
+  },
+  L: {
+    name: "Leere Vorlage (für Aufgabenblatt)", firma: "", produkt: "",
+    text: "Tragen Sie die Daten Ihres Aufgabenblatts ein: Unternehmen, Produkt, Einsatzfaktoren (Name, Einheit, Art der Angabe), Intensitäten, Verbrauchswerte und Preise. Vergleichen Sie danach die Prüfsumme mit Ihrem Aufgabenblatt. Wechseln Sie dann in den Übungsmodus.",
+    lam: [10,20,30,40],
+    fac: [
+      {name:"Faktor 1", unit:"kg", type:"konstant", c:0, price:0},
+      {name:"Faktor 2", unit:"kWh", type:"stunde", vals:[0,0,0,0], price:0},
+      {name:"Arbeit", unit:"min", type:"arbeit", ma:1, price:0}
+    ]
+  }
+};
+let S = null, sel = 0, presetKey = "A";
+let practice = false, ans = {}, checked = false, reveal = false, menge = 480;
+let locked = false, allowShow = true, taskText = "";
+
+const r2 = x => Math.round((x + Math.sign(x)*1e-9) * 100) / 100;
+const de = (x, d=2) => x.toLocaleString("de-DE",{minimumFractionDigits:d,maximumFractionDigits:d});
+const deN = x => x.toLocaleString("de-DE",{maximumFractionDigits:2});
+const esc = t => String(t).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const U = f => f.type==="arbeit" ? "min" : f.unit;
+const num = t => parseFloat(String(t).replace(",", "."));
+
+function normFac(f, n){
+  f.c = f.c ?? 1; f.ma = f.ma ?? 1;
+  f.vals = (f.vals ?? []).slice(0,n);
+  while(f.vals.length < n) f.vals.push(f.vals.length ? f.vals[f.vals.length-1] : 1);
+  f.pmax = f.pmax ?? Math.max(1, Math.ceil(f.price*3));
+  return f;
+}
+function load(key){
+  presetKey = key;
+  S = JSON.parse(JSON.stringify(PRESETS[key]));
+  S.fac.forEach(f=>normFac(f, S.lam.length));
+  locked = false; taskText = ""; allowShow = true;
+  sel = 0; ans = {}; checked = false; reveal = false;
+  render();
+}
+function resetAns(){ ans = {}; checked = false; reveal = false; }
+
+function compute(){
+  const rows = S.lam.map((l,i) => {
+    const m = [], e = [];
+    S.fac.forEach(f=>{
+      let v;
+      if(f.type==="konstant") v = r2(f.c);
+      else if(f.type==="stueck") v = r2(f.vals[i]);
+      else if(f.type==="stunde") v = r2(f.vals[i] / l);
+      else v = r2(f.ma*60 / l);
+      m.push(v);
+      e.push(f.type==="arbeit" ? r2(v/60*f.price) : r2(v*f.price));
+    });
+    return {l, m, e, sum: r2(e.reduce((a,b)=>a+b,0))};
+  });
+  const min = Math.min(...rows.map(r=>r.sum));
+  const opt = rows.map((r,i)=> r.sum===min ? i : -1).filter(i=>i>=0);
+  return {rows, min, opt};
+}
+function checksum(){
+  const code = {konstant:1, stueck:2, stunde:3, arbeit:4};
+  let s = 0;
+  S.lam.forEach((l,i)=>{ s += (+l||0)*(i+1); });
+  S.fac.forEach(f=>{
+    let g = code[f.type]*7 + (+f.price||0)*3;
+    if(f.type==="konstant") g += +f.c||0;
+    else if(f.type==="arbeit") g += +f.ma||0;
+    else f.vals.forEach((v,i)=>{ g += (+v||0)*(i+1); });
+    s += g;
+  });
+  return r2(s);
+}
+const isCalc = f => f.type==="stunde" || f.type==="arbeit";
+
+function render(){
+  // presets
+  const pr = document.getElementById("presets");
+  pr.innerHTML = "";
+  Object.entries(PRESETS).forEach(([k,p])=>{
+    const b = document.createElement("button");
+    b.textContent = p.name; if(k===presetKey) b.className="on";
+    b.onclick = ()=>load(k); pr.appendChild(b);
+  });
+  document.getElementById("presetText").textContent = PRESETS[presetKey] ? PRESETS[presetKey].text : "Eigene Aufgabe.";
+
+  // header, task box, lock state
+  document.getElementById("sub").textContent = "Simulation zur Produktionsfunktion vom Typ B (Gutenberg)" + (S.firma ? " · " + S.firma : "");
+  const fi0 = document.getElementById("firma"), pr0 = document.getElementById("produkt");
+  fi0.value = S.firma; pr0.value = S.produkt; fi0.disabled = pr0.disabled = locked;
+  document.getElementById("teacherBox").hidden = locked;
+  document.getElementById("editRow").hidden = locked;
+  document.getElementById("eingRow").hidden = locked; document.getElementById("eingOut").hidden = locked;
+  document.getElementById("h0").textContent = locked ? "Ausgangsdaten" : "Ausgangsdaten (veränderbar)";
+  const tb = document.getElementById("taskBox");
+  tb.hidden = !locked;
+  if(locked){
+    tb.innerHTML = `<div class="task"><div class="tt">Aufgabe: ${esc(S.firma || "Unternehmen")}${S.produkt ? " – " + esc(S.produkt) : ""}</div>
+      <div class="tx">${esc(taskText || "Berechnen Sie die mengenmäßigen, die monetären und die aggregierte monetäre Verbrauchsfunktion und bestimmen Sie die Optimalintensität.")}</div>
+      <button class="small" id="leaveTask">Aufgabe verlassen</button></div>`;
+    document.getElementById("leaveTask").onclick = ()=>load("A");
+  } else tb.innerHTML = "";
+
+  // input table
+  const n = S.lam.length;
+  const it = document.getElementById("inTable");
+  let h = `<thead><tr><th colspan="3">Intensität λ [Stk./Std.]</th>` +
+    S.lam.map((l,i)=>`<th><input type="number" min="1" step="1" value="${l}" data-k="lam" data-i="${i}" aria-label="Intensität ${i+1}"></th>`).join("") + `<th></th></tr>` +
+    `<tr><th>Einsatzfaktor</th><th style="text-align:left">Einheit</th><th style="text-align:left">Art der Angabe</th><th colspan="${n}" style="text-align:left">Verbrauch</th><th></th></tr></thead><tbody>`;
+  S.fac.forEach((f,fi)=>{
+    h += `<tr><td><input type="text" class="txt fname" maxlength="24" value="${esc(f.name)}" data-f="${fi}" data-k="name" aria-label="Name Einsatzfaktor ${fi+1}"></td>`;
+    h += `<td class="left"><input type="text" class="txt funit" maxlength="8" value="${esc(U(f))}" data-f="${fi}" data-k="unit" ${f.type==="arbeit"?"disabled":""} aria-label="Einheit"></td>`;
+    h += `<td class="left"><select class="sel2" data-f="${fi}" data-k="type" aria-label="Art der Angabe">${TYPES.map(([v,t])=>`<option value="${v}" ${f.type===v?"selected":""}>${t}</option>`).join("")}</select></td>`;
+    if(f.type==="konstant")
+      h += `<td colspan="${n}" class="left"><input type="number" min="0" step="0.01" value="${(+f.c).toFixed(2)}" data-f="${fi}" data-k="c"> ${esc(U(f))}/Stk.</td>`;
+    else if(f.type==="arbeit")
+      h += `<td colspan="${n}" class="left"><input type="number" min="1" step="1" value="${f.ma}" data-f="${fi}" data-k="ma"> Mitarbeiter · 60 min/Std.</td>`;
+    else
+      h += f.vals.map((v,i)=>`<td><input type="number" min="0" step="0.01" value="${(+v).toFixed(2)}" data-f="${fi}" data-k="val" data-i="${i}" title="${esc(U(f))}/${f.type==="stunde"?"Std.":"Stk."}"></td>`).join("");
+    h += `<td><button class="del" data-del="${fi}" ${S.fac.length<=1?"disabled":""} aria-label="Einsatzfaktor ${esc(f.name)} entfernen">✕</button></td></tr>`;
+  });
+  it.innerHTML = h + "</tbody>";
+  it.querySelectorAll("input,select").forEach(inp=>{
+    inp.addEventListener("change", e=>{
+      const t = e.target, k = t.dataset.k, i = t.dataset.i, f = t.dataset.f!==undefined ? S.fac[+t.dataset.f] : null;
+      if(k==="name"){ f.name = t.value.trim() || ("Faktor " + (+t.dataset.f+1)); t.value = f.name; renderParams(); update(); return; }
+      if(k==="unit"){ f.unit = t.value.trim() || "ME"; render(); return; }
+      if(k==="type"){ f.type = t.value; if(f.type!=="arbeit" && !f.unit) f.unit = "ME"; resetAns(); render(); return; }
+      const v = num(t.value);
+      if(!isFinite(v) || v<0 || (v===0 && (k==="lam"||k==="ma"))){ render(); return; }
+      if(k==="lam") S.lam[+i] = v; else if(k==="val") f.vals[+i] = v; else f[k] = v;
+      update();
+    });
+  });
+  it.querySelectorAll("[data-del]").forEach(b=>{
+    b.onclick = ()=>{ if(S.fac.length<=1) return; S.fac.splice(+b.dataset.del,1); resetAns(); render(); };
+  });
+  if(locked){
+    it.querySelectorAll("input,select").forEach(x=>x.disabled = true);
+    it.querySelectorAll("[data-del]").forEach(x=>x.hidden = true);
+  }
+  document.getElementById("addFac").disabled = S.fac.length>=MAXF;
+  document.getElementById("facHint").textContent = `${S.fac.length} von höchstens ${MAXF} Einsatzfaktoren. Namen, Einheiten und Werte lassen sich direkt ändern.`;
+  renderParams();
+  update();
+}
+
+function renderParams(){
+  const pa = document.getElementById("params");
+  pa.innerHTML = S.fac.map((f,fi)=>{
+    const lab = f.type==="arbeit" ? `Preis ${esc(f.name)} für einen Mitarbeiter [€/Std.]` : `Preis ${esc(f.name)} [€/${esc(U(f))}]`;
+    return `<div class="param" style="border-left:5px solid ${COLORS[fi]}"><label>${lab}</label>
+    <div class="val"><input type="range" min="0" max="${f.pmax}" step="0.01" value="${f.price}" data-f="${fi}" aria-label="${lab}">
+    <input type="number" min="0" step="0.01" value="${f.price.toFixed(2)}" data-f="${fi}" aria-label="${lab}"></div></div>`;
+  }).join("");
+  if(locked) pa.querySelectorAll("input").forEach(x=>x.disabled = true);
+  pa.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("input", e=>{
+      const fi = e.target.dataset.f, f = S.fac[+fi];
+      const v = num(e.target.value);
+      if(!isFinite(v) || v<0) return;
+      f.price = v;
+      pa.querySelectorAll(`input[data-f="${fi}"]`).forEach(o=>{
+        if(o===e.target) return;
+        if(o.type==="range"){ if(v>f.pmax){ f.pmax = Math.ceil(v); o.max = f.pmax; } o.value = v; }
+        else o.value = v.toFixed(2);
+      });
+      update();
+    });
+  });
+}
+
+function parseNum(t){
+  t = String(t).trim().replace(/\s|€/g,"");
+  if(t==="") return NaN;
+  if(t.includes(",")) t = t.replace(/\./g,"").replace(",",".");
+  return parseFloat(t);
+}
+const dec2 = a => /^\d+(,\d{2})$/.test(String(a).trim().replace(/\s|€/g,"").replace(/\.(?=\d{3}(\D|$))/g,"").replace(/\./,",").replace(/,/,",")) ;
+const valOk = (a,v) => { const x = parseNum(a); return isFinite(x) && Math.abs(x-v) < 0.006; };
+const okv = (a,v) => valOk(a,v) && dec2(a);
+function grade(C){
+  let right=0, total=0;
+  let decErr=0;
+  const chk = (k,v)=>{ total++; const a=ans[k] ?? ""; if(okv(a, v)) right++; else if(valOk(a,v)) decErr++; };
+  C.rows.forEach((r,i)=>{
+    S.fac.forEach((f,fi)=>{ chk(`m-${fi}-${i}`, r.m[fi]); chk(`e-${fi}-${i}`, r.e[fi]); });
+    chk(`sum-${i}`, r.sum);
+  });
+  total++;
+  const o = parseNum(ans.opt ?? "");
+  const optOk = C.opt.some(i=>Math.abs(C.rows[i].l - o) < 1e-9);
+  if(optOk) right++;
+  return {right,total,optOk,decErr};
+}
+function listNames(a){ return a.length<=1 ? a.join("") : a.slice(0,-1).join(", ") + " und " + a[a.length-1]; }
+
+function update(){
+  document.getElementById("chk").innerHTML = "<b>Prüfsumme Ihrer Eingaben:</b> " + de(checksum()) + " <span class=\"hint\">– Stimmt sie mit der Prüfsumme auf Ihrem Aufgabenblatt überein? Wenn nicht, haben Sie in Schritt 0 etwas falsch eingetragen. Wählen Sie darunter Ihre Aufgabe und klicken Sie auf „Eingaben prüfen“.</span>";
+  if(sel >= S.lam.length) sel = S.lam.length-1;
+  const C = compute();
+  const R = C.rows, s = R[sel], F = S.fac;
+  const G = grade(C);
+  const open = !practice || reveal || G.right===G.total;
+
+  // modes
+  const mo = document.getElementById("modes");
+  mo.innerHTML = "";
+  [["Erklärmodus",false],["Übungsmodus",true]].forEach(([t,p])=>{
+    const b = document.createElement("button");
+    b.textContent = t; if(practice===p) b.className="on";
+    b.onclick = ()=>{ practice=p; checked=false; reveal=false; update(); };
+    mo.appendChild(b);
+  });
+  document.getElementById("modeText").textContent = practice
+    ? "Übungsmodus: Die Ergebnisfelder sind leer. Selbst rechnen, eintragen und prüfen lassen."
+    : "Erklärmodus: Alle Ergebnisse und Rechenwege werden angezeigt.";
+
+  // lambda buttons
+  const lb = document.getElementById("lamBtns");
+  lb.innerHTML = "";
+  R.forEach((r,i)=>{
+    const b = document.createElement("button");
+    b.textContent = "λ = " + deN(r.l); if(i===sel) b.className="on";
+    b.onclick = ()=>{ sel=i; update(); }; lb.appendChild(b);
+  });
+
+  const head = "<thead><tr><th>Intensität λ</th>" + R.map((r,i)=>`<th class="${i===sel?'sel':''}">${deN(r.l)}</th>`).join("") + "</tr></thead>";
+  const cell = (v,i,extra="") => `<td class="${i===sel?'sel':''} ${extra}">${v}</td>`;
+  const val = (k,i,v,extra="") => {
+    if(open) return cell(de(v),i,extra);
+    const key = k+"-"+i, a = ans[key] ?? "";
+    const cls = checked ? (okv(a,v) ? "ok" : "bad") : "";
+    return `<td class="${i===sel?'sel':''}"><input class="ans ${cls}" data-a="${key}" value="${esc(a)}" inputmode="decimal" aria-label="Ergebnis bei λ ${deN(R[i].l)}"></td>`;
+  };
+  const w = Math.max(...F.map(f=>f.name.length)) + 2;
+  const long = w > 9;
+  const lbl = f => long ? esc(f.name + ":") + "\n  " : esc((f.name + ":").padEnd(w));
+  const pad = long ? "  " : " ".repeat(w);
+
+  // table 1
+  document.getElementById("t1").innerHTML = head + "<tbody>" +
+    `<tr class="dim"><td>Dimension λ</td>${R.map((r,i)=>cell("Stk./Std.",i)).join("")}</tr>` +
+    F.map((f,fi)=>`<tr><td>Mengenmäßig: ${esc(f.name)} [${esc(U(f))}/Stk.]</td>${R.map((r,i)=> val("m-"+fi,i,r.m[fi])).join("")}</tr>`).join("") + "</tbody>";
+
+  const rw1 = document.getElementById("rw1"), rw2 = document.getElementById("rw2");
+  rw1.hidden = rw2.hidden = !open;
+  rw1.innerHTML = `<b>Rechenweg bei λ = ${deN(s.l)} Stk./Std.</b>\n` + F.map((f,fi)=>{
+    const u = esc(U(f)), v = s.m[fi];
+    if(f.type==="konstant") return `${lbl(f)}${de(v)} ${u}/Stk. (unabhängig von der Intensität)`;
+    if(f.type==="stueck") return `${lbl(f)}${de(v)} ${u}/Stk. (für diese Intensität gegeben)`;
+    if(f.type==="stunde") return `${lbl(f)}${deN(f.vals[sel])} ${u}/Std. : ${deN(s.l)} Stk./Std. = <b>${de(v)} ${u}/Stk.</b>`;
+    return `${lbl(f)}${deN(f.ma)} Mitarbeiter · 60 min/Std. = ${deN(f.ma*60)} min/Std.\n${pad}${deN(f.ma*60)} min/Std. : ${deN(s.l)} Stk./Std. = <b>${de(v)} min/Stk.</b>`;
+  }).join("\n");
+
+  // table 2
+  document.getElementById("t2").innerHTML = head + "<tbody>" +
+    `<tr class="dim"><td>Dimension</td>${R.map((r,i)=>cell("€/Stk.",i)).join("")}</tr>` +
+    F.map((f,fi)=>`<tr><td>Monetär: ${esc(f.name)}</td>${R.map((r,i)=>val("e-"+fi,i,r.e[fi])).join("")}</tr>`).join("") +
+    `<tr class="sum"><td>Aggregierte monetäre Verbrauchsfunktion</td>${R.map((r,i)=>val("sum",i,r.sum, C.opt.includes(i)?"opt":"")).join("")}</tr></tbody>`;
+
+  rw2.innerHTML = `<b>Rechenweg bei λ = ${deN(s.l)} Stk./Std.</b>\n` + F.map((f,fi)=>{
+    const u = esc(U(f)), v = s.m[fi];
+    if(f.type==="arbeit") return `${lbl(f)}${de(v)} min/Stk. : 60 min/Std. · ${de(f.price)} €/Std. = <b>${de(s.e[fi])} €/Stk.</b>`;
+    return `${lbl(f)}${de(v)} ${u}/Stk. · ${de(f.price)} €/${u} = <b>${de(s.e[fi])} €/Stk.</b>`;
+  }).join("\n");
+
+  document.getElementById("rw3").innerHTML =
+`<b>Aggregierte monetäre Verbrauchsfunktion bei λ = ${deN(s.l)} Stk./Std.</b>
+${s.e.map(x=>de(x)).join(" + ")} = <b>${de(s.sum)} €/Stk.</b>`;
+
+  // result
+  const opts = C.opt.map(i=>deN(R[i].l)).join(" und ");
+  let txt = `<strong>Optimalintensität: λ<sub>opt</sub> = ${opts} Stk./Std.</strong><br>
+  Hier hat die aggregierte monetäre Verbrauchsfunktion ihr Minimum von <b>${de(C.min)} €/Stk.</b> Bei dieser Intensität sind die variablen Kosten je Stück am niedrigsten.`;
+  if(C.opt.length>1) txt += `<br><span class="hint">Mehrere Intensitäten führen zum selben Minimum.</span>`;
+  const last = R.length-1;
+  const fall = F.filter((f,fi)=>R[last].e[fi] < R[0].e[fi]).map(f=>esc(f.name));
+  const rise = F.filter((f,fi)=>R[last].e[fi] > R[0].e[fi]).map(f=>esc(f.name));
+  if(C.opt.length===1 && C.opt[0]===last && fall.length)
+    txt += `<br><span class="hint">Das Minimum liegt bei der höchsten betrachteten Intensität: Bei ${listNames(fall)} sinkt die monetäre Verbrauchsfunktion mit steigender Intensität${rise.length ? " stärker, als sie bei " + listNames(rise) + " steigt" : ", bei keinem Faktor steigt sie"}.</span>`;
+  if(C.opt.length===1 && C.opt[0]===0 && rise.length)
+    txt += `<br><span class="hint">Das Minimum liegt bei der niedrigsten betrachteten Intensität: Bei ${listNames(rise)} steigt die monetäre Verbrauchsfunktion mit der Intensität${fall.length ? " stärker, als sie bei " + listNames(fall) + " sinkt" : ", bei keinem Faktor sinkt sie"}.</span>`;
+  document.getElementById("result").innerHTML = txt;
+
+  // practice box
+  const pb = document.getElementById("practiceBox");
+  if(practice){
+    let fb = "";
+    if(G.right===G.total) fb = `<div class="fb good">Alles richtig: ${G.right} von ${G.total} Feldern.</div>`;
+    else if(reveal) fb = `<div class="fb">Die Lösung wird angezeigt. Mit „Zurücksetzen“ beginnen Sie neu.</div>`;
+    else if(checked) fb = `<div class="fb warn">${G.right} von ${G.total} Feldern richtig. Rot markierte Felder bitte noch einmal nachrechnen.${G.decErr?` <b>${G.decErr} Feld(er) haben den richtigen Wert, aber nicht genau 2 Nachkommastellen</b> (z. B. 3,00 statt 3).`:""}</div>`;
+    const oc = (checked && !open) ? (G.optOk ? "ok" : "bad") : "";
+    const ov = reveal ? opts : (ans.opt ?? "");
+    pb.innerHTML = `<p>Berechnen Sie die mengenmäßigen, die monetären und die aggregierte monetäre Verbrauchsfunktion in den Tabellen 1 und 2 (kaufmännisch auf 2 Nachkommastellen runden) und bestimmen Sie die Optimalintensität.</p>
+      <div class="row"><label>λ<sub>opt</sub> = <input class="ans ${oc}" data-a="opt" value="${esc(ov)}" inputmode="decimal" ${open?"disabled":""}> Stk./Std.</label></div>
+      <div class="row" style="margin-top:10px"><button class="small" id="bCheck">Prüfen</button>${(!locked||allowShow) ? '<button class="small" id="bShow">Lösung zeigen</button>' : ''}<button class="small" id="bReset">Zurücksetzen</button></div>${fb}`;
+    document.getElementById("bCheck").onclick = ()=>{ checked=true; update(); };
+    const bs = document.getElementById("bShow"); if(bs) bs.onclick = ()=>{ reveal=true; update(); };
+    document.getElementById("bReset").onclick = ()=>{ resetAns(); update(); };
+  } else pb.innerHTML = "";
+  document.getElementById("solBox").hidden = !open;
+  document.getElementById("orderCard").hidden = !open;
+  document.querySelectorAll(".ans").forEach(inp=>{
+    inp.oninput = e=>{ ans[e.target.dataset.a] = e.target.value; };
+    inp.onkeydown = e=>{ if(e.key==="Enter"){ checked=true; update(); } };
+  });
+
+  // legend
+  document.getElementById("legend").innerHTML =
+    F.map((f,fi)=>`<span><svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true"><line x1="0" x2="34" y1="8" y2="8" stroke="${COLORS[fi]}" stroke-width="3.5"/>${mark(fi,17,8,5,COLORS[fi])}</svg>monetär: ${esc(f.name)}</span>`).join("") +
+    `<span><svg width="34" height="16" viewBox="0 0 34 16" aria-hidden="true"><line x1="0" x2="34" y1="8" y2="8" stroke="${SUMCOL}" stroke-width="7"/></svg><b>aggregierte monetäre Verbrauchsfunktion</b></span>`;
+
+  // order
+  const m = menge, kv = r2(s.sum*m);
+  const w4 = Math.max(w, 17);
+  const l4 = t => esc((t + ":").padEnd(w4));
+  document.getElementById("rw4").innerHTML =
+    `<b>Auftrag über ${deN(m)} Stk. bei λ = ${deN(s.l)} Stk./Std.</b>\n` +
+    `${l4("Laufzeit")}${deN(m)} Stk. : ${deN(s.l)} Stk./Std. = <b>${de(r2(m/s.l))} Std.</b>\n` +
+    F.map((f,fi)=>{
+      const u = esc(U(f)), tot = r2(s.m[fi]*m);
+      if(f.type==="arbeit") return `${l4(f.name)}${de(s.m[fi])} min/Stk. · ${deN(m)} Stk. = ${de(tot)} min = <b>${de(r2(tot/60))} Std.</b>`;
+      return `${l4(f.name)}${de(s.m[fi])} ${u}/Stk. · ${deN(m)} Stk. = <b>${de(tot)} ${u}</b>`;
+    }).join("\n") +
+    `\n${l4("Variable Kosten")}${de(s.sum)} €/Stk. · ${deN(m)} Stk. = <b>${de(kv)} €</b>`;
+  const mehr = r2((s.sum - C.min) * m);
+  document.getElementById("order").innerHTML = C.opt.includes(sel)
+    ? `<strong>Die gewählte Intensität ist die Optimalintensität.</strong> Günstiger lässt sich der Auftrag mit den betrachteten Intensitäten nicht fertigen.`
+    : `<strong>Mehrkosten gegenüber λ<sub>opt</sub> = ${opts} Stk./Std.:</strong> (${de(s.sum)} − ${de(C.min)}) €/Stk. · ${deN(m)} Stk. = <b>${de(mehr)} €</b>`;
+
+  drawChart(R, C);
+}
+
+function drawChart(R, C){
+  const svg = document.getElementById("chart");
+  const W=520,H=360,m={l:56,r:92,t:22,b:46};
+  const xs = R.map(r=>r.l), ymax0 = Math.max(...R.map(r=>r.sum), 0.01);
+  const xmin = Math.min(...xs), xmax = Math.max(...xs);
+  const span = (xmax-xmin)||1;
+  const x0 = xmin - span*0.08, x1 = xmax + span*0.08;
+  const step = niceStep(ymax0/5);
+  const ymax = Math.ceil(ymax0*1.08/step)*step;
+  const X = v => m.l + (v-x0)/(x1-x0)*(W-m.l-m.r);
+  const Y = v => H-m.b - v/ymax*(H-m.t-m.b);
+  let g = "";
+  for(let k=0; k*step<=ymax+1e-9; k++){
+    const v = k*step;
+    g += `<line x1="${m.l}" x2="${W-m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#e3e8ef"/>`;
+    g += `<text x="${m.l-8}" y="${Y(v)+4}" font-size="12" text-anchor="end" fill="#5b6876">${de(v)}</text>`;
+  }
+  xs.forEach(v=>{ g += `<text x="${X(v)}" y="${H-m.b+18}" font-size="12" text-anchor="middle" fill="#5b6876">${deN(v)}</text>`; });
+  g += `<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="#8a97a6"/>`;
+  g += `<line x1="${m.l}" x2="${m.l}" y1="${m.t}" y2="${H-m.b}" stroke="#8a97a6"/>`;
+  g += `<text x="${(m.l+W-m.r)/2}" y="${H-8}" font-size="13" text-anchor="middle" fill="#1A3A5C">Intensität λ [Stk./Std.]</text>`;
+  g += `<text transform="translate(16 ${(m.t+H-m.b)/2}) rotate(-90)" font-size="13" text-anchor="middle" fill="#1A3A5C">Monetäre Verbrauchsfunktionen [€/Stk.]</text>`;
+  g += `<line x1="${X(R[sel].l)}" x2="${X(R[sel].l)}" y1="${m.t}" y2="${H-m.b}" stroke="#555" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  const line = (get,col,w,rad,fi)=>{
+    g += `<polyline points="${R.map(r=>`${X(r.l)},${Y(get(r))}`).join(" ")}" fill="none" stroke="${col}" stroke-width="${w}" stroke-linejoin="round"/>`;
+    R.forEach(r=>{ g += fi===null ? `<circle cx="${X(r.l)}" cy="${Y(get(r))}" r="${rad}" fill="${col}"/>` : mark(fi,X(r.l),Y(get(r)),rad,col); });
+  };
+  S.fac.forEach((f,fi)=>line(r=>r.e[fi], COLORS[fi], 3.5, 5, fi));
+  line(r=>r.sum, SUMCOL, 5.5, 5.5, null);
+  // direkte Beschriftung am rechten Linienende (mit Mindestabstand)
+  const last = R[R.length-1];
+  const labs = S.fac.map((f,fi)=>({t:f.name.length>11?f.name.slice(0,10)+"…":f.name, c:COLORS[fi], y:Y(last.e[fi])}));
+  labs.push({t:"gesamt", c:SUMCOL, y:Y(last.sum)});
+  labs.sort((a,b)=>a.y-b.y);
+  for(let k=1;k<labs.length;k++) if(labs[k].y-labs[k-1].y<16) labs[k].y = labs[k-1].y+16;
+  labs.forEach(l=>{ g += `<text x="${X(last.l)+12}" y="${l.y+4}" font-size="14" font-weight="700" fill="${l.c}">${esc(l.t)}</text>`; });
+  C.opt.forEach(i=>{
+    const r=R[i];
+    const tx = Math.min(Math.max(X(r.l), m.l+48), W-m.r-62);
+    g += `<circle cx="${X(r.l)}" cy="${Y(r.sum)}" r="9" fill="none" stroke="#B8860B" stroke-width="3"/>`;
+    g += `<text x="${tx}" y="${Y(r.sum)-16}" font-size="13" font-weight="700" text-anchor="middle" fill="#7a5600">Minimum ${de(r.sum)} €</text>`;
+  });
+  svg.innerHTML = g;
+}
+function niceStep(raw){
+  const p = Math.pow(10, Math.floor(Math.log10(raw||1)));
+  const n = raw/p;
+  return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p;
+}
+
+document.getElementById("addFac").onclick = ()=>{
+  if(S.fac.length>=MAXF) return;
+  S.fac.push(normFac({name:"Faktor " + (S.fac.length+1), unit:"kg", type:"konstant", c:1, price:1}, S.lam.length));
+  resetAns(); render();
+};
+document.getElementById("addCol").onclick = ()=>{
+  if(S.lam.length>=8) return;
+  S.lam.push(S.lam[S.lam.length-1] + 10);
+  S.fac.forEach(f=>f.vals.push(f.type==="stunde" ? Math.round(f.vals[f.vals.length-1]*1.3) : f.vals[f.vals.length-1]));
+  resetAns(); render();
+};
+document.getElementById("delCol").onclick = ()=>{
+  if(S.lam.length<=2) return;
+  S.lam.pop(); S.fac.forEach(f=>f.vals.pop()); resetAns(); render();
+};
+document.getElementById("menge").addEventListener("input", e=>{
+  const v = parseFloat(e.target.value);
+  if(isFinite(v) && v>0){ menge = v; update(); }
+});
+document.getElementById("firma").addEventListener("change", e=>{ S.firma = e.target.value.trim(); render(); });
+document.getElementById("produkt").addEventListener("change", e=>{ S.produkt = e.target.value.trim(); });
+
+// ---------- Eingabe: höchstens 2 Nachkommastellen (ganze Zahlen bei Intensität, Mitarbeitern, Menge, λopt) ----------
+(function(){
+  const intOnly = el => el.dataset.k==="lam" || el.dataset.k==="ma" || el.id==="menge" || el.dataset.a==="opt";
+  const isNum = el => el.tagName==="INPUT" && (el.type==="number" || el.classList.contains("ans"));
+  document.addEventListener("focusin", e=>{ if(isNum(e.target)) e.target.dataset.prev = e.target.value; }, true);
+  document.addEventListener("input", e=>{
+    const el = e.target; if(!isNum(el) || el.type==="range") return;
+    const v = el.value;
+    const bad = intOnly(el) ? /[.,]/.test(v) : /[.,]\d{3,}/.test(v);
+    if(bad){
+      e.stopImmediatePropagation();
+      el.value = el.dataset.prev ?? "";
+      return;
+    }
+    el.dataset.prev = v;
+  }, true);
+
+})();
+const AUFGABEN = {"1": {"lam": [20, 30, 40, 50, 60], "ltip": "", "fac": [{"name": "Stahl", "type": "konstant", "price": 1.1, "tipV": "Der Verbrauch je Getriebewelle ist in allen Zeilen gleich.", "tipP": "", "c": 1.8}, {"name": "Strom", "type": "stunde", "price": 0.4, "tipV": "Der Stromverbrauch ist je Betriebsstunde und je Intensität gegeben.", "tipP": "", "vals": [30.0, 36.0, 48.0, 80.0, 120.0]}, {"name": "Arbeit", "type": "arbeit", "price": 24.0, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "", "ma": 1}], "firma": "Drehwerk Saar GmbH"}, "2": {"lam": [30, 40, 55, 70], "ltip": "", "fac": [{"name": "Granulat", "type": "konstant", "price": 2.47, "tipV": "Verbrauch: 5 kg : 6 Stück, auf 2 Nachkommastellen runden.", "tipP": "Preis: Sackpreis : 25 kg je Sack = € je kg, auf 2 Nachkommastellen runden.", "c": 0.83}, {"name": "Strom", "type": "stunde", "price": 0.28, "tipV": "Der Stromverbrauch ist je Betriebsstunde und je Intensität gegeben.", "tipP": "Preis: ct je kWh : 100 = € je kWh, kaufmännisch auf 2 Nachkommastellen runden.", "vals": [41.0, 55.0, 82.0, 190.0]}, {"name": "Arbeit", "type": "arbeit", "price": 27.83, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "Lohnsatz = Bruttolohn · 1,05 (5 % Lohnnebenkosten), auf 2 Nachkommastellen runden.", "ma": 2}], "firma": "Saar-Kunststofftechnik GmbH"}, "3": {"lam": [100, 150, 200, 250], "ltip": "Die Simulation rechnet mit Tablettentrays je Stunde: Tabletten je Stunde : 10 Tabletten je Tray.", "fac": [{"name": "Wirkstoff", "type": "konstant", "price": 0.04, "tipV": "mg in g umrechnen (: 1.000) und mit 10 Tabletten je Tray multiplizieren: ergibt g je Tablettentray.", "tipP": "Der Preis gilt je g.", "c": 25.0}, {"name": "Verpackung", "type": "konstant", "price": 0.12, "tipV": "Je Tablettentray wird 1 Karton eingesetzt.", "tipP": "", "c": 1.0}, {"name": "Strom", "type": "stunde", "price": 0.25, "tipV": "Der Stromverbrauch ist je Betriebsstunde und je Intensität gegeben. Die Zuordnung zu den Intensitäten in Tablettentrays je Stunde beachten.", "tipP": "", "vals": [30.0, 42.0, 64.0, 180.0]}, {"name": "Arbeit", "type": "arbeit", "price": 24.0, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "", "ma": 3}], "firma": "Saar-Pharma GmbH"}, "4": {"lam": [12, 16, 20, 24, 28], "ltip": "", "fac": [{"name": "Schaumstoff", "type": "konstant", "price": 3.85, "tipV": "Der Verbrauch je Stuhl ist in allen Zeilen gleich.", "tipP": "", "c": 1.35}, {"name": "Bezugsstoff", "type": "stueck", "price": 6.75, "tipV": "Der Verbrauch je Stuhl ist für jede Intensität gegeben. Die Tabelle ist spaltenweise aufgebaut: Spalte von oben nach unten in die Zeile von links nach rechts übertragen.", "tipP": "", "vals": [1.85, 1.86, 1.88, 1.92, 2.0]}, {"name": "Strom", "type": "stunde", "price": 0.32, "tipV": "Der Stromverbrauch ist je Betriebsstunde gegeben. Spalte von oben nach unten in die Zeile übertragen, beide Dezimalstellen beachten.", "tipP": "", "vals": [13.5, 19.2, 25.0, 33.6, 47.6]}, {"name": "Arbeit", "type": "arbeit", "price": 25.8, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "", "ma": 3}], "firma": "Saarbrücker Möbelwerkstätten GmbH"}, "5": {"lam": [30, 40, 50, 60], "ltip": "", "fac": [{"name": "Aluminium", "type": "konstant", "price": 2.27, "tipV": "Verbrauch: 10 kg : 3 Stück, auf 2 Nachkommastellen runden.", "tipP": "Preis: USD je t : 1,08 USD je € : 1.000 kg je t = € je kg, auf 2 Nachkommastellen runden.", "c": 3.33}, {"name": "Strom", "type": "stunde", "price": 0.21, "tipV": "Verbrauch: MWh je Schicht · 1.000 kWh je MWh : 8 Std. je Schicht = kWh je Std.", "tipP": "Preis: ct je kWh : 100 = € je kWh.", "vals": [30.0, 40.0, 55.0, 200.0]}, {"name": "Kühlwasser", "type": "stunde", "price": 3.6, "tipV": "Verbrauch: l je Std. : 1.000 l je m³ = m³ je Std.", "tipP": "", "vals": [0.9, 1.4, 2.0, 2.7]}, {"name": "Arbeit", "type": "arbeit", "price": 31.5, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "", "ma": 4}], "firma": "Saar-Aluguss GmbH"}, "6": {"lam": [30, 40, 50, 60, 80], "ltip": "Intensität = 3.600 s : Taktzeit in s.", "fac": [{"name": "Messing", "type": "stueck", "price": 8.0, "tipV": "Verbrauch je Gutteil = 1,20 kg : (1 − Ausschussquote), je Intensität, auf 2 Nachkommastellen runden.", "tipP": "Preis ohne Umsatzsteuer: Preis inkl. USt : 1,19.", "vals": [1.22, 1.24, 1.25, 1.28, 1.33]}, {"name": "Strom", "type": "stunde", "price": 0.3, "tipV": "Der Stromverbrauch ist je Betriebsstunde und je Intensität gegeben.", "tipP": "Preis ohne Umsatzsteuer: Preis inkl. USt : 1,19, auf 2 Nachkommastellen runden.", "vals": [48.0, 66.0, 110.0, 180.0, 320.0]}, {"name": "Arbeit", "type": "arbeit", "price": 27.5, "tipV": "Tragen Sie die Anzahl der Mitarbeiter ein; der Preis gilt je Stunde für einen Mitarbeiter.", "tipP": "", "ma": 2}], "firma": "Warndt-Zerspanung GmbH"}};
+
+function pruefeEingaben(key){
+  const R = AUFGABEN[key], out = [];
+  const eq = (a,b) => Math.abs((+a)-(+b)) < 1e-9;
+  const norm = t => String(t).trim().toLowerCase();
+  // Intensitäten
+  if(S.lam.length !== R.lam.length) out.push(`Anzahl der Intensitätsstufen: Die Aufgabe hat ${R.lam.length} Stufen, Sie haben ${S.lam.length}.`);
+  const n = Math.min(S.lam.length, R.lam.length), bl = [];
+  for(let i=0;i<n;i++) if(!eq(S.lam[i], R.lam[i])) bl.push(i+1);
+  if(bl.length) out.push(`Intensität: Der Wert an Stelle ${bl.join(", ")} (von links gezählt) stimmt nicht.` + (R.ltip ? " Tipp: " + R.ltip : ""));
+  // Einsatzfaktoren zuordnen: erst über den Namen, dann über Art und Reihenfolge
+  const used = new Set(), pair = new Map();
+  S.fac.forEach((f,i)=>{ const j = R.fac.findIndex((r,ri)=>!used.has(ri) && norm(r.name)===norm(f.name)); if(j>=0){ used.add(j); pair.set(i,j); } });
+  S.fac.forEach((f,i)=>{ if(pair.has(i)) return; const j = R.fac.findIndex((r,ri)=>!used.has(ri) && r.type===f.type); if(j>=0){ used.add(j); pair.set(i,j); } });
+  if(S.fac.length !== R.fac.length) out.push(`Anzahl der Einsatzfaktoren: Die Aufgabe hat ${R.fac.length}, Sie haben ${S.fac.length}.`);
+  S.fac.forEach((f,i)=>{
+    if(!pair.has(i)){ out.push(`Der Einsatzfaktor „${f.name}“ gehört nicht zur Aufgabe oder ist ein weiterer Faktor, der nicht gebraucht wird.`); return; }
+    const r = R.fac[pair.get(i)], p = [];
+    if(f.type !== r.type) p.push("Die Art der Angabe stimmt nicht.");
+    else {
+      if(f.type==="konstant" && !eq(f.c, r.c)) p.push("Der Verbrauch je Stück stimmt nicht.");
+      if(f.type==="arbeit" && !eq(f.ma, r.ma)) p.push("Die Anzahl der Mitarbeiter stimmt nicht.");
+      if(f.type==="stueck" || f.type==="stunde"){
+        const b = []; for(let k=0;k<Math.min(f.vals.length, r.vals.length);k++) if(!eq(f.vals[k], r.vals[k])) b.push(k+1);
+        if(b.length) p.push(`Der Verbrauch an Stelle ${b.join(", ")} (von links gezählt) stimmt nicht.`);
+      }
+    }
+    const vFehler = p.length>0, pFehler = !eq(f.price, r.price);
+    if(pFehler) p.push(f.type==="arbeit" ? "Der Preis für einen Mitarbeiter stimmt nicht." : "Der Preis stimmt nicht.");
+    if(p.length){
+      const tips = [vFehler && r.tipV ? r.tipV : "", pFehler && r.tipP ? r.tipP : ""].filter(Boolean).join(" ");
+      out.push(`<b>${esc(f.name)}</b>: ${p.join(" ")}` + (tips ? ` Tipp: ${esc(tips)}` : ""));
+    }
+  });
+  R.fac.forEach((r,j)=>{ if(!used.has(j)) out.push(`In der Aufgabe kommt noch der Einsatzfaktor „${esc(r.name)}“ vor, der bei Ihnen fehlt.`); });
+  return out;
+}
+document.getElementById("btnEing").onclick = ()=>{
+  const key = document.getElementById("aufSel").value, box = document.getElementById("eingOut");
+  if(!key){ box.innerHTML = '<div class="eo">Bitte wählen Sie zuerst Ihre Aufgabe aus.</div>'; return; }
+  const out = pruefeEingaben(key);
+  box.innerHTML = out.length
+    ? `<div class="eo"><b>Das stimmt noch nicht:</b><ul>${out.map(t=>`<li>${t}</li>`).join("")}</ul></div>`
+    : `<div class="eo ok"><b>✔ Alle Eingaben stimmen mit Aufgabe ${key} überein.</b> Sie können jetzt in den Übungsmodus wechseln.</div>`;
+};
+load("A");
+</script>
+</body>
+</html>
